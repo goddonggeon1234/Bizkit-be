@@ -1,5 +1,6 @@
 package com.caro.bizkit.domain.chat.config;
 
+import com.caro.bizkit.domain.ai.service.SseEmitterService;
 import com.caro.bizkit.domain.chat.service.ChatRedisSubscriber;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,11 @@ public class RedisPubSubConfig {
     }
 
     @Bean
+    public ChannelTopic sseNotificationTopic() {
+        return new ChannelTopic("sse:notifications");
+    }
+
+    @Bean
     public MessageListenerAdapter chatMessageListenerAdapter(ChatRedisSubscriber subscriber) {
         return new MessageListenerAdapter(subscriber, "onMessage");
     }
@@ -32,17 +38,25 @@ public class RedisPubSubConfig {
     }
 
     @Bean
+    public MessageListenerAdapter sseNotificationListenerAdapter(SseEmitterService sseEmitterService) {
+        return new MessageListenerAdapter(sseEmitterService, "handleSseMessage");
+    }
+
+    @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
             MessageListenerAdapter chatMessageListenerAdapter,
             ChannelTopic chatMessageTopic,
             MessageListenerAdapter chatReadListenerAdapter,
-            ChannelTopic chatReadTopic
+            ChannelTopic chatReadTopic,
+            MessageListenerAdapter sseNotificationListenerAdapter,
+            ChannelTopic sseNotificationTopic
     ) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(chatMessageListenerAdapter, chatMessageTopic);
         container.addMessageListener(chatReadListenerAdapter, chatReadTopic);
+        container.addMessageListener(sseNotificationListenerAdapter, sseNotificationTopic);
         return container;
     }
 }

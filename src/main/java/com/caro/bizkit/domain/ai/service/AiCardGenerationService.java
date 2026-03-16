@@ -80,9 +80,7 @@ public class AiCardGenerationService {
             submitResponse = aiClient.submitCardGeneration(requestRef[0]);
         } catch (Exception e) {
             log.error("User {} AI 명함 생성 요청 실패: {}", userId, e.getMessage());
-            transactionTemplate.executeWithoutResult(status ->
-                    aiCardTaskRepository.findById(taskDbId[0]).ifPresent(AiCardTask::fail));
-            sseEmitterService.sendFailed(userId, "AI 서버 요청에 실패했습니다.");
+            failTask(userId, taskDbId[0], "AI 서버 요청에 실패했습니다.");
             return;
         }
 
@@ -100,9 +98,7 @@ public class AiCardGenerationService {
     private void poll(Integer userId, Integer taskDbId, String aiTaskId, long deadline) {
         if (System.currentTimeMillis() > deadline) {
             log.warn("User {} AI 명함 생성 시간 초과", userId);
-            transactionTemplate.executeWithoutResult(status ->
-                    aiCardTaskRepository.findById(taskDbId).ifPresent(AiCardTask::fail));
-            sseEmitterService.sendFailed(userId, "생성 시간이 초과되었습니다.");
+            failTask(userId, taskDbId, "생성 시간이 초과되었습니다.");
             return;
         }
 
@@ -112,26 +108,29 @@ public class AiCardGenerationService {
             if ("completed".equals(statusResponse.status())) {
                 Optional<AiCardGenerateResponse> result = aiClient.getCardTaskResult(aiTaskId);
                 result.ifPresent(res -> handleCompleted(userId, taskDbId, res));
-                if (result.isEmpty()) {
-                    scheduler.schedule(() -> poll(userId, taskDbId, aiTaskId, deadline),
-                            properties.getCard().getPollIntervalSeconds(), TimeUnit.SECONDS);
-                }
+                if (result.isEmpty()) schedulePoll(userId, taskDbId, aiTaskId, deadline);
             } else if ("failed".equals(statusResponse.status())) {
                 log.warn("User {} AI 명함 생성 실패", userId);
-                transactionTemplate.executeWithoutResult(status ->
-                        aiCardTaskRepository.findById(taskDbId).ifPresent(AiCardTask::fail));
-                sseEmitterService.sendFailed(userId, "이미지 생성에 실패했습니다.");
+                failTask(userId, taskDbId, "이미지 생성에 실패했습니다.");
             } else {
                 sseEmitterService.sendProgress(userId, statusResponse.status(), statusResponse.progress());
-                scheduler.schedule(() -> poll(userId, taskDbId, aiTaskId, deadline),
-                        properties.getCard().getPollIntervalSeconds(), TimeUnit.SECONDS);
+                schedulePoll(userId, taskDbId, aiTaskId, deadline);
             }
         } catch (Exception e) {
             log.error("User {} polling 오류: {}", userId, e.getMessage());
-            transactionTemplate.executeWithoutResult(status ->
-                    aiCardTaskRepository.findById(taskDbId).ifPresent(AiCardTask::fail));
-            sseEmitterService.sendFailed(userId, "이미지 생성 중 오류가 발생했습니다.");
+            failTask(userId, taskDbId, "이미지 생성 중 오류가 발생했습니다.");
         }
+    }
+
+    private void failTask(Integer userId, Integer taskDbId, String message) {
+        transactionTemplate.executeWithoutResult(status ->
+                aiCardTaskRepository.findById(taskDbId).ifPresent(AiCardTask::fail));
+        sseEmitterService.sendFailed(userId, message);
+    }
+
+    private void schedulePoll(Integer userId, Integer taskDbId, String aiTaskId, long deadline) {
+        scheduler.schedule(() -> poll(userId, taskDbId, aiTaskId, deadline),
+                properties.getCard().getPollIntervalSeconds(), TimeUnit.SECONDS);
     }
 
     private void handleCompleted(Integer userId, Integer taskDbId, AiCardGenerateResponse res) {
@@ -142,9 +141,7 @@ public class AiCardGenerationService {
             s3Service.uploadBytes(tempKey, imageBytes, "image/png");
         } catch (Exception e) {
             log.error("User {} S3 업로드 실패: {}", userId, e.getMessage());
-            transactionTemplate.executeWithoutResult(status ->
-                    aiCardTaskRepository.findById(taskDbId).ifPresent(AiCardTask::fail));
-            sseEmitterService.sendFailed(userId, "이미지 저장에 실패했습니다.");
+            failTask(userId, taskDbId, "이미지 저장에 실패했습니다.");
             return;
         }
 
