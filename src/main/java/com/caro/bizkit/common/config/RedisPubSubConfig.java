@@ -1,4 +1,4 @@
-package com.caro.bizkit.domain.chat.config;
+package com.caro.bizkit.common.config;
 
 import com.caro.bizkit.domain.ai.service.SseEmitterService;
 import com.caro.bizkit.domain.chat.service.ChatRedisSubscriber;
