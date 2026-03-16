@@ -20,6 +20,7 @@ import com.caro.bizkit.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -60,6 +61,7 @@ public class UserService {
         return toResponse(user);
     }
 
+    @CacheEvict(cacheNames = "principal", key = "#principal.id")
     @Transactional
     public UserResponse updateMyStatus(UserPrincipal principal, Map<String, Object> request) {
         User user = userRepository.findByIdAndDeletedAtIsNull(principal.id())
@@ -92,6 +94,7 @@ public class UserService {
         }
     }
 
+    @CacheEvict(cacheNames = "principal", key = "#principal.id")
     @Transactional
     public void withdraw(UserPrincipal principal) {
 
