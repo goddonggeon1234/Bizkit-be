@@ -113,7 +113,6 @@ public class AiCardGenerationService {
                 log.warn("User {} AI 명함 생성 실패", userId);
                 failTask(userId, taskDbId, "이미지 생성에 실패했습니다.");
             } else {
-                sseEmitterService.sendProgress(userId, statusResponse.status(), statusResponse.progress());
                 schedulePoll(userId, taskDbId, aiTaskId, deadline);
             }
         } catch (Exception e) {
