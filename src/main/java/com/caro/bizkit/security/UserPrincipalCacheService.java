@@ -3,7 +3,6 @@ package com.caro.bizkit.security;
 import com.caro.bizkit.domain.user.dto.UserPrincipal;
 import com.caro.bizkit.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -35,7 +34,5 @@ public class UserPrincipalCacheService {
                 .orElse(null);
     }
 
-    @CacheEvict(cacheNames = "principal", key = "#userId")
-    public void evict(Integer userId) {
-    }
+
 }
