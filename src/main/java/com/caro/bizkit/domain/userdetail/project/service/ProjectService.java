@@ -1,15 +1,13 @@
 package com.caro.bizkit.domain.userdetail.project.service;
 
+import com.caro.bizkit.common.aop.CardInfoUpdated;
 import com.caro.bizkit.common.security.CardCollectionValidator;
-import com.caro.bizkit.domain.ai.event.CardInfoUpdatedEvent;
-import com.caro.bizkit.domain.card.repository.CardRepository;
 import com.caro.bizkit.domain.user.dto.UserPrincipal;
 import com.caro.bizkit.domain.user.entity.User;
 import com.caro.bizkit.domain.user.repository.UserRepository;
 import com.caro.bizkit.domain.userdetail.project.dto.ProjectRequest;
 import com.caro.bizkit.domain.userdetail.project.dto.ProjectResponse;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -17,12 +15,11 @@ import com.caro.bizkit.domain.userdetail.project.entity.Project;
 import com.caro.bizkit.domain.userdetail.project.repository.ProjectRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -30,8 +27,6 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
-    private final CardRepository cardRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final CardCollectionValidator cardCollectionValidator;
 
     @Transactional(readOnly = true)
@@ -49,6 +44,7 @@ public class ProjectService {
                 .toList();
     }
 
+    @CardInfoUpdated
     @Transactional
     public ProjectResponse createMyProject(UserPrincipal principal, ProjectRequest request) {
         User user = userRepository.getReferenceById(principal.id());
@@ -59,16 +55,10 @@ public class ProjectService {
                 request.start_date(),
                 request.end_date()
         );
-        Project saved = projectRepository.save(project);
-
-        cardRepository.findTopByUserIdAndDeletedAtIsNullOrderByIsProgressDescStartDateDesc(principal.id())
-                .ifPresent(card -> eventPublisher.publishEvent(new CardInfoUpdatedEvent(
-                        card.getId(), "CARD", LocalDateTime.now()
-                )));
-
-        return ProjectResponse.from(saved);
+        return ProjectResponse.from(projectRepository.save(project));
     }
 
+    @CardInfoUpdated
     @Transactional
     @PreAuthorize("@projectSecurity.isOwner(#projectId, authentication)")
     public ProjectResponse updateMyProject(
@@ -84,13 +74,16 @@ public class ProjectService {
         }
 
         applyUpdates(project, request);
-
-        cardRepository.findTopByUserIdAndDeletedAtIsNullOrderByIsProgressDescStartDateDesc(principal.id())
-                .ifPresent(card -> eventPublisher.publishEvent(new CardInfoUpdatedEvent(
-                        card.getId(), "CARD", LocalDateTime.now()
-                )));
-
         return ProjectResponse.from(project);
+    }
+
+    @CardInfoUpdated
+    @Transactional
+    @PreAuthorize("@projectSecurity.isOwner(#projectId, authentication)")
+    public void deleteMyProject(UserPrincipal principal, Integer projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+        projectRepository.delete(project);
     }
 
     private void applyUpdates(Project project, Map<String, Object> request) {
@@ -141,18 +134,5 @@ public class ProjectService {
             return YearMonth.parse(value).atDay(1);
         }
         return LocalDate.parse(value);
-    }
-
-    @Transactional
-    @PreAuthorize("@projectSecurity.isOwner(#projectId, authentication)")
-    public void deleteMyProject(UserPrincipal principal, Integer projectId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
-        projectRepository.delete(project);
-
-        cardRepository.findTopByUserIdAndDeletedAtIsNullOrderByIsProgressDescStartDateDesc(principal.id())
-                .ifPresent(card -> eventPublisher.publishEvent(new CardInfoUpdatedEvent(
-                        card.getId(), "CARD", LocalDateTime.now()
-                )));
     }
 }
