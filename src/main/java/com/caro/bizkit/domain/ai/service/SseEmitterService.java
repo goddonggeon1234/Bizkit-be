@@ -74,10 +74,6 @@ public class SseEmitterService {
         return emitter;
     }
 
-    public void sendProgress(Integer userId, String status, String progress) {
-        publish(userId, Map.of("event", "progress", "status", status, "progress", progress != null ? progress : ""));
-    }
-
     public void sendCompleted(Integer userId, String imageUrl) {
         publish(userId, Map.of("event", "completed", "image_url", imageUrl));
     }
