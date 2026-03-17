@@ -10,6 +10,7 @@ import com.caro.bizkit.domain.userdetail.skill.repository.SkillRepository;
 import com.caro.bizkit.domain.userdetail.skill.repository.UserSkillRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ public class SkillService {
     private final UserSkillRepository userSkillRepository;
     private final CardCollectionValidator cardCollectionValidator;
 
+    @Cacheable(cacheNames = "skills", cacheManager = "caffeineCacheManager")
     @Transactional(readOnly = true)
     public List<SkillResponse> getAllSkills() {
         return skillRepository.findAll().stream()

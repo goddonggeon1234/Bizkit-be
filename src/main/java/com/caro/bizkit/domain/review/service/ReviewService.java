@@ -18,6 +18,7 @@ import com.caro.bizkit.domain.user.dto.UserPrincipal;
 import com.caro.bizkit.domain.user.entity.User;
 import com.caro.bizkit.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,7 @@ public class ReviewService {
     private final UserCardRepository userCardRepository;
     private final ApplicationEventPublisher eventPublisher;
 
+    @Cacheable(cacheNames = "tags", cacheManager = "caffeineCacheManager")
     @Transactional(readOnly = true)
     public List<TagResponse> getTags() {
         return tagRepository.findAll().stream()

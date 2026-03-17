@@ -2,8 +2,6 @@ package com.caro.bizkit.security;
 
 import com.caro.bizkit.common.ApiResponse.ApiResponse;
 import com.caro.bizkit.domain.user.dto.UserPrincipal;
-import com.caro.bizkit.domain.user.entity.User;
-import com.caro.bizkit.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -27,16 +25,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
+    private final UserPrincipalCacheService userPrincipalCacheService;
     private final ObjectMapper objectMapper;
 
     public JwtAuthenticationFilter(
             JwtTokenProvider jwtTokenProvider,
-            UserRepository userRepository,
+            UserPrincipalCacheService userPrincipalCacheService,
             ObjectMapper objectMapper
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
-        this.userRepository = userRepository;
+        this.userPrincipalCacheService = userPrincipalCacheService;
         this.objectMapper = objectMapper;
     }
 
@@ -77,27 +75,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             writeUnauthorizedResponse(response, "유효하지 않은 토큰입니다. 사용자 식별자가 올바르지 않습니다.");
             return;
         }
-        User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElse(null);
+        UserPrincipal principal = userPrincipalCacheService.findById(userId);
 
-        if (user == null) {
+        if (principal == null) {
             log.warn("User not found for token: method={}, path={}, userId={}",
                     request.getMethod(), request.getRequestURI(), userId);
             writeUnauthorizedResponse(response, "유효하지 않은 토큰입니다. 사용자 정보를 찾을 수 없습니다.");
             return;
         }
-
-        UserPrincipal principal = new UserPrincipal(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getLinedNumber(),
-                user.getCompany(),
-                user.getDepartment(),
-                user.getPosition(),
-                user.getProfileImageKey(),
-                user.getDescription()
-        );
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(authentication);
