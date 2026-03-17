@@ -1,6 +1,8 @@
 package com.caro.bizkit.common.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.time.Duration;
 import java.util.List;
@@ -29,15 +31,26 @@ public class CacheConfig implements CachingConfigurer {
     /**
      * Redis CacheManager — 분산 캐시 (UserPrincipal)
      *
-     * GenericJackson2JsonRedisSerializer + Spring Boot ObjectMapper 조합:
-     * - JSON 직렬화로 redis-cli에서 값 확인 가능
-     * - ParameterNamesModule 등록된 ObjectMapper → Record 타입 역직렬화 가능
+     * GenericJackson2JsonRedisSerializer + default typing ObjectMapper 조합:
+     * - JSON에 @class 타입 정보 포함 → 역직렬화 시 LinkedHashMap 캐스팅 오류 방지
+     * - Spring Boot ObjectMapper를 복사해 ParameterNamesModule 등 기존 설정 유지
+     * - activateDefaultTyping(NON_FINAL) → 비-final 타입에 @class 추가
+     * - record(final) 등 캐싱 대상 클래스는 @JsonTypeInfo(CLASS) 어노테이션으로 @class 삽입
+     * - allowIfSubType("com.caro.bizkit.") → @class 실제 값이 자사 패키지일 때만 허용 (보안 화이트리스트)
      * - @class 필드 포함 → 패키지 경로 변경 시 역직렬화 실패 주의
      */
     @Bean("redisCacheManager")
     @Primary
     public CacheManager redisCacheManager(RedisConnectionFactory cf, ObjectMapper objectMapper) {
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        ObjectMapper redisMapper = objectMapper.copy()
+                .activateDefaultTyping(
+                        BasicPolymorphicTypeValidator.builder()
+                                .allowIfSubType("com.caro.bizkit.")
+                                .build(),
+                        ObjectMapper.DefaultTyping.NON_FINAL,
+                        JsonTypeInfo.As.PROPERTY
+                );
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(redisMapper);
 
         RedisCacheConfiguration base = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(
