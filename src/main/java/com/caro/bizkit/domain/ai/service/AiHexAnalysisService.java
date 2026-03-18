@@ -1,11 +1,7 @@
 package com.caro.bizkit.domain.ai.service;
 
-import com.caro.bizkit.domain.ai.client.AiAnalysisClient;
-import com.caro.bizkit.domain.ai.config.AiClientProperties;
 import com.caro.bizkit.domain.ai.dto.AiHexAnalyzeRequest;
-import com.caro.bizkit.domain.ai.dto.AiHexAnalyzeResponse;
-import com.caro.bizkit.domain.ai.dto.AiJobSubmitResponse;
-import com.caro.bizkit.domain.ai.dto.AiTaskStatusResponse;
+import com.caro.bizkit.domain.ai.dto.AiHexJobMessage;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisTask;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisTaskType;
 import com.caro.bizkit.domain.ai.repository.AiAnalysisTaskRepository;
@@ -17,8 +13,6 @@ import com.caro.bizkit.domain.user.entity.User;
 import com.caro.bizkit.domain.user.repository.UserRepository;
 import com.caro.bizkit.domain.userdetail.activity.entity.Activity;
 import com.caro.bizkit.domain.userdetail.activity.repository.ActivityRepository;
-import com.caro.bizkit.domain.userdetail.chart.entity.ChartData;
-import com.caro.bizkit.domain.userdetail.chart.repository.ChartDataRepository;
 import com.caro.bizkit.domain.userdetail.link.entity.Link;
 import com.caro.bizkit.domain.userdetail.link.repository.LinkRepository;
 import com.caro.bizkit.domain.userdetail.project.entity.Project;
@@ -26,6 +20,7 @@ import com.caro.bizkit.domain.userdetail.project.repository.ProjectRepository;
 import com.caro.bizkit.domain.userdetail.skill.repository.UserSkillRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -33,9 +28,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,15 +37,8 @@ public class AiHexAnalysisService {
 
     private static final DateTimeFormatter YEAR_MONTH = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final String GITHUB_DOMAIN = "github.com";
-    private static final List<String> BADGE_KEYWORDS = List.of(
-            "협업을 잘한다.", "말을 잘한다.", "기술역량이 뛰어나다.",
-            "문서화를 잘한다.", "일정을 안지킨다.", "다음에 같이 일하고 싶지 않다."
-    );
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-
-    private final AiAnalysisClient aiClient;
-    private final AiClientProperties properties;
+    private final RabbitTemplate rabbitTemplate;
     private final TransactionTemplate transactionTemplate;
 
     private final UserRepository userRepository;
@@ -65,11 +50,10 @@ public class AiHexAnalysisService {
     private final ReviewRepository reviewRepository;
     private final ReviewTagRepository reviewTagRepository;
     private final AiAnalysisTaskRepository taskRepository;
-    private final ChartDataRepository chartDataRepository;
 
     public void analyze(Integer userId) {
         Integer[] taskDbId = new Integer[1];
-        AiHexAnalyzeRequest[] requestRef = new AiHexAnalyzeRequest[1];
+        AiHexJobMessage[] messageRef = new AiHexJobMessage[1];
 
         transactionTemplate.executeWithoutResult(status -> {
             Optional<Link> githubLink = linkRepository.findFirstByUserIdAndLinkContaining(userId, GITHUB_DOMAIN);
@@ -82,82 +66,20 @@ public class AiHexAnalysisService {
             AiAnalysisTask task = AiAnalysisTask.create(user, AiAnalysisTaskType.HEX);
             taskRepository.save(task);
             taskDbId[0] = task.getId();
-            requestRef[0] = buildRequest(userId, githubLink.get().getLink());
+            messageRef[0] = buildJobMessage(task.getId(), userId, githubLink.get().getLink());
         });
 
         if (taskDbId[0] == null) return;
 
-        AiJobSubmitResponse submitResponse;
         try {
-            submitResponse = aiClient.submitHexAnalysis(requestRef[0]);
+            rabbitTemplate.convertAndSend("ai.exchange", "hex", messageRef[0]);
+            log.info("User {} AI 차트 분석 잡 발행 backendTaskId={}", userId, taskDbId[0]);
         } catch (Exception e) {
-            log.error("User {} 차트 분석 요청 실패: {}", userId, e.getMessage());
-            transactionTemplate.executeWithoutResult(status ->
-                    taskRepository.findById(taskDbId[0]).ifPresent(AiAnalysisTask::fail));
-            return;
-        }
-
-        String aiTaskId = submitResponse.taskId();
-        log.info("User {} 차트 분석 요청 완료, aiTaskId={}", userId, aiTaskId);
-
-        transactionTemplate.executeWithoutResult(status ->
-                taskRepository.findById(taskDbId[0]).ifPresent(task -> task.assignAiTaskId(aiTaskId)));
-
-        long deadline = System.currentTimeMillis() + properties.getHex().getTimeoutSeconds() * 1000L;
-        scheduler.schedule(() -> poll(userId, taskDbId[0], aiTaskId, deadline),
-                properties.getHex().getPollIntervalSeconds(), TimeUnit.SECONDS);
-    }
-
-    private void poll(Integer userId, Integer taskDbId, String aiTaskId, long deadline) {
-        if (System.currentTimeMillis() > deadline) {
-            log.warn("User {} 차트 분석 시간 초과 (aiTaskId={})", userId, aiTaskId);
-            transactionTemplate.executeWithoutResult(status ->
-                    taskRepository.findById(taskDbId).ifPresent(AiAnalysisTask::fail));
-            return;
-        }
-
-        try {
-            AiTaskStatusResponse statusResponse = aiClient.getTaskStatus(aiTaskId);
-
-            if ("done".equals(statusResponse.progress())) {
-                Optional<AiHexAnalyzeResponse> result = aiClient.getHexTaskResult(aiTaskId);
-                result.ifPresent(res -> transactionTemplate.executeWithoutResult(status -> {
-                    saveChartData(userId, res);
-                    taskRepository.findById(taskDbId).ifPresent(AiAnalysisTask::complete);
-                }));
-                log.info("User {} 차트 분석 완료", userId);
-            } else if ("failed".equals(statusResponse.status())) {
-                log.warn("User {} 차트 분석 실패 (aiTaskId={})", userId, aiTaskId);
-                transactionTemplate.executeWithoutResult(status ->
-                        taskRepository.findById(taskDbId).ifPresent(AiAnalysisTask::fail));
-            } else {
-                scheduler.schedule(() -> poll(userId, taskDbId, aiTaskId, deadline),
-                        properties.getHex().getPollIntervalSeconds(), TimeUnit.SECONDS);
-            }
-        } catch (Exception e) {
-            log.error("User {} polling 오류: {}", userId, e.getMessage());
-            transactionTemplate.executeWithoutResult(status ->
-                    taskRepository.findById(taskDbId).ifPresent(AiAnalysisTask::fail));
+            log.error("User {} AI 차트 분석 MQ 발행 실패 backendTaskId={}: {}", userId, taskDbId[0], e.getMessage());
         }
     }
 
-    private void saveChartData(Integer userId, AiHexAnalyzeResponse response) {
-        chartDataRepository.deleteAllByUserId(userId);
-        User user = userRepository.getReferenceById(userId);
-        AiHexAnalyzeResponse.RadarChart radar = response.data().radarChart();
-        AiHexAnalyzeResponse.AnalysisSummary summary = response.data().analysisSummary();
-
-        List.of(
-                ChartData.create(user, "collaboration", radar.collaboration(), summary.collaboration()),
-                ChartData.create(user, "communication", radar.communication(), summary.communication()),
-                ChartData.create(user, "technical", radar.technical(), summary.technical()),
-                ChartData.create(user, "documentation", radar.documentation(), summary.documentation()),
-                ChartData.create(user, "reliability", radar.reliability(), summary.reliability()),
-                ChartData.create(user, "preference", radar.preference(), summary.preference())
-        ).forEach(chartDataRepository::save);
-    }
-
-    private AiHexAnalyzeRequest buildRequest(Integer userId, String githubUrl) {
+    private AiHexJobMessage buildJobMessage(Integer backendTaskId, Integer userId, String githubUrl) {
         String githubUsername = extractGithubUsername(githubUrl);
 
         List<Card> cards = cardRepository.findAllByUserIdAndDeletedAtIsNullOrderByIsProgressDescStartDateDesc(userId);
@@ -172,7 +94,8 @@ public class AiHexAnalysisService {
         List<String> textReviews = reviewRepository.findTextReviewsByRevieweeId(userId);
         AiHexAnalyzeRequest.Reviews reviews = buildReviews(userId, totalReviews, textReviews);
 
-        return new AiHexAnalyzeRequest(
+        return new AiHexJobMessage(
+                backendTaskId,
                 userId,
                 githubUsername,
                 new AiHexAnalyzeRequest.Capabilities(
