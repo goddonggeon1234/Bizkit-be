@@ -2,6 +2,7 @@ package com.caro.bizkit.common.config;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
@@ -11,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
-import org.springframework.util.backoff.ExponentialBackOff;
 
 @Configuration
 public class RabbitMQConfig {
@@ -185,9 +185,6 @@ public class RabbitMQConfig {
 
     @Bean
     RetryOperationsInterceptor retryInterceptor() {
-        ExponentialBackOff backOff = new ExponentialBackOff(4_000L, 2.0);
-        backOff.setMaxInterval(8_000L);
-
         RetryTemplate retryTemplate = new RetryTemplate();
         retryTemplate.setBackOffPolicy(new org.springframework.retry.backoff.ExponentialRandomBackOffPolicy() {{
             setInitialInterval(4_000L);
@@ -200,5 +197,17 @@ public class RabbitMQConfig {
                 .retryOperations(retryTemplate)
                 .recoverer(new RejectAndDontRequeueRecoverer())
                 .build();
+    }
+
+    @Bean
+    SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory,
+            RetryOperationsInterceptor retryInterceptor
+    ) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(messageConverter());
+        factory.setAdviceChain(retryInterceptor);
+        return factory;
     }
 }
