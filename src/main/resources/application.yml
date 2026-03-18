@@ -71,18 +71,6 @@ aws:
     presigned-url-expiration-seconds: ${AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS:300}
     env-prefix: ${SPRING_PROFILES_ACTIVE}
 
-ai:
-  client:
-    base-url: ${AI_SERVER_URL:http://localhost:8000}
-    job:
-      timeout-seconds: ${AI_TIME_OUT:100}
-      poll-interval-seconds: ${AI_JOB_POLL_INTERVAL_SECONDS:3}
-    hex:
-      timeout-seconds: ${AI_TIME_OUT:100}
-      poll-interval-seconds: ${AI_HEX_POLL_INTERVAL_SECONDS:20}
-    card:
-      timeout-seconds: ${AI_TIME_OUT:200}
-      poll-interval-seconds: ${AI_CARD_POLL_INTERVAL_SECONDS:10}
 
 metrics:
   http:

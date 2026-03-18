@@ -8,4 +8,5 @@ public record AiCardGenerationRequest(
         @NotNull @JsonProperty("card_id") Integer cardId,
         @NotNull CardStyleTag tag,
         String text
+
 ) {}
