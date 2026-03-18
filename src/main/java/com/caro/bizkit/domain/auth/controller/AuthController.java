@@ -1,6 +1,7 @@
 package com.caro.bizkit.domain.auth.controller;
 
 import com.caro.bizkit.common.ApiResponse.ApiResponse;
+import com.caro.bizkit.common.exception.CustomException;
 import com.caro.bizkit.domain.auth.dto.LoginRequest;
 import com.caro.bizkit.domain.auth.dto.RefreshRequest;
 import com.caro.bizkit.domain.auth.dto.TokenPair;
@@ -25,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -72,7 +72,7 @@ public class AuthController {
     ) {
         if (refreshRequest == null || refreshRequest.refreshToken() == null) {
             log.warn("토큰 재발행 실패: 리프레시 토큰 없음");
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 없습니다.");
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 없습니다.");
         }
 
         return ResponseEntity.ok(ApiResponse.success("토큰 갱신 성공", authService.refresh(refreshRequest.refreshToken())));

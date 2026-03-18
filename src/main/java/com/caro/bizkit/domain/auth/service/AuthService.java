@@ -1,5 +1,6 @@
 package com.caro.bizkit.domain.auth.service;
 
+import com.caro.bizkit.common.exception.CustomException;
 import com.caro.bizkit.domain.auth.dto.KakaoTokenResponse;
 import com.caro.bizkit.domain.auth.dto.KakaoUserResponse;
 import com.caro.bizkit.domain.auth.dto.TokenPair;
@@ -20,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
 
@@ -42,25 +42,14 @@ public class AuthService {
 
     @Transactional
     public TokenPair login(String provider, String code, String redirectUri) {
-        if (!"kakao".equalsIgnoreCase(provider)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported provider: " + provider);
-        }
-        KakaoTokenResponse tokenResponse = kakaoOAuthClient.exchangeCodeForToken(code, redirectUri);
-        if (tokenResponse == null || !StringUtils.hasText(tokenResponse.accessToken())) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to get access token");
-        }
 
+        validateProvider(provider);
+        KakaoUserResponse userResponse = fetchKakaoUser(code, redirectUri);
 
-        KakaoUserResponse userResponse = kakaoOAuthClient.fetchUser(tokenResponse.accessToken());
-        if (userResponse == null || userResponse.id() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to fetch Kakao user profile");
-        }
         KakaoUserResponse.KakaoAccount kakaoAccount = userResponse.kakaoAccount();
         KakaoUserResponse.KakaoProfile kakaoProfile = kakaoAccount.profile();
-
         String email = kakaoAccount.email();
         String nickname = kakaoProfile.nickname();
-
 
         Account account = oAuthRepository.findByProviderAndProviderId(provider, String.valueOf(userResponse.id()))
                 .map(OAuth::getAccount)
@@ -69,7 +58,7 @@ public class AuthService {
         account.updateLoggedAt(java.time.LocalDateTime.now());
 
         User user = userRepository.findByAccountAndDeletedAtIsNull(account)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
         String accessToken = jwtTokenProvider.generateAccessToken(
                 String.valueOf(user.getId()),
@@ -85,11 +74,11 @@ public class AuthService {
     public TokenPair refresh(String refreshToken) {
         Integer userId = refreshTokenService.validateAndGetUserId(refreshToken);
         if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No User Id in refresh token");
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "리프레시 토큰에 사용자 정보가 없습니다.");
         }
 
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다."));
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(
                 String.valueOf(user.getId()),
@@ -99,6 +88,24 @@ public class AuthService {
 
         log.info("토큰 재발행 성공: userId={}", userId);
         return new TokenPair(newAccessToken, newRefreshToken);
+    }
+
+    private void validateProvider(String provider) {
+        if (!"kakao".equalsIgnoreCase(provider)) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 제공자입니다.");
+        }
+    }
+
+    private KakaoUserResponse fetchKakaoUser(String code, String redirectUri) {
+        KakaoTokenResponse tokenResponse = kakaoOAuthClient.exchangeCodeForToken(code, redirectUri);
+        if (tokenResponse == null || !StringUtils.hasText(tokenResponse.accessToken())) {
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "카카오 액세스 토큰을 가져오지 못했습니다.");
+        }
+        KakaoUserResponse userResponse = kakaoOAuthClient.fetchUser(tokenResponse.accessToken());
+        if (userResponse == null || userResponse.id() == null) {
+            throw new CustomException(HttpStatus.BAD_GATEWAY, "카카오 사용자 정보를 가져오지 못했습니다.");
+        }
+        return userResponse;
     }
 
     public void logout(Integer userId) {
