@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ActivityRepository extends JpaRepository<Activity, Integer> {
     List<Activity> findAllByUserId(Integer userId);
+    List<Activity> findAllByUserIdAndDeletedAtIsNull(Integer userId);
 }

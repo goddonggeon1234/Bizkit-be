@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LinkRepository extends JpaRepository<Link, Integer> {
     List<Link> findAllByUserId(Integer userId);
+    List<Link> findAllByUserIdAndDeletedAtIsNull(Integer userId);
 
     @org.springframework.data.jpa.repository.Query(
             "SELECT l FROM Link l WHERE l.user.id = :userId AND l.link LIKE %:keyword%"

@@ -31,7 +31,7 @@ public class LinkService {
 
     @Transactional(readOnly = true)
     public List<LinkResponse> getMyLinks(UserPrincipal principal) {
-        return linkRepository.findAllByUserId(principal.id()).stream()
+        return linkRepository.findAllByUserIdAndDeletedAtIsNull(principal.id()).stream()
                 .map(LinkResponse::from)
                 .toList();
     }
@@ -39,7 +39,7 @@ public class LinkService {
     @Transactional(readOnly = true)
     public List<LinkResponse> getLinksByUserId(UserPrincipal principal, Integer userId) {
         cardCollectionValidator.validateAccess(principal.id(), userId);
-        return linkRepository.findAllByUserId(userId).stream()
+        return linkRepository.findAllByUserIdAndDeletedAtIsNull(userId).stream()
                 .map(LinkResponse::from)
                 .toList();
     }

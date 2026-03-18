@@ -31,7 +31,7 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public List<ProjectResponse> getMyProjects(UserPrincipal principal) {
-        return projectRepository.findAllByUserId(principal.id()).stream()
+        return projectRepository.findAllByUserIdAndDeletedAtIsNull(principal.id()).stream()
                 .map(ProjectResponse::from)
                 .toList();
     }
@@ -39,7 +39,7 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public List<ProjectResponse> getProjectsByUserId(UserPrincipal principal, Integer userId) {
         cardCollectionValidator.validateAccess(principal.id(), userId);
-        return projectRepository.findAllByUserId(userId).stream()
+        return projectRepository.findAllByUserIdAndDeletedAtIsNull(userId).stream()
                 .map(ProjectResponse::from)
                 .toList();
     }
