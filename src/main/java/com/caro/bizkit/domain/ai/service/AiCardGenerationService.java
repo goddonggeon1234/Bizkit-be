@@ -4,6 +4,7 @@ import com.caro.bizkit.common.exception.CustomException;
 import com.caro.bizkit.domain.ai.dto.AiCardJobMessage;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisStatus;
 import com.caro.bizkit.domain.ai.entity.AiCardTask;
+import com.caro.bizkit.domain.ai.entity.CardStyleTag;
 import com.caro.bizkit.domain.ai.repository.AiCardTaskRepository;
 import com.caro.bizkit.domain.card.entity.Card;
 import com.caro.bizkit.domain.card.repository.CardRepository;
@@ -31,7 +32,7 @@ public class AiCardGenerationService {
     private final UserRepository userRepository;
     private final AiUsageService aiUsageService;
 
-    public void generate(Integer userId, Integer cardId, String tag, String text) {
+    public void generate(Integer userId, Integer cardId, CardStyleTag tag, String text) {
         Integer[] taskDbId = new Integer[1];
         AiCardJobMessage[] messageRef = new AiCardJobMessage[1];
 
@@ -68,9 +69,9 @@ public class AiCardGenerationService {
     }
 
     private AiCardJobMessage buildJobMessage(Integer backendTaskId, Integer userId, Integer cardId,
-                                              Card card, String tag, String text) {
+                                              Card card, CardStyleTag tag, String text) {
         return new AiCardJobMessage(
-                backendTaskId, userId, cardId, tag, text,
+                backendTaskId, userId, cardId, tag.name(), text,
                 card.getName(), card.getCompany(), card.getDepartment(), card.getPosition(),
                 card.getPhoneNumber(), card.getEmail()
         );
