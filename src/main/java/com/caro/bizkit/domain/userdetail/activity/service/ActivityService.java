@@ -30,7 +30,7 @@ public class ActivityService {
 
     @Transactional(readOnly = true)
     public List<ActivityResponse> getMyActivities(UserPrincipal principal) {
-        return activityRepository.findAllByUserId(principal.id()).stream()
+        return activityRepository.findAllByUserIdAndDeletedAtIsNull(principal.id()).stream()
                 .map(ActivityResponse::from)
                 .toList();
     }
@@ -38,7 +38,7 @@ public class ActivityService {
     @Transactional(readOnly = true)
     public List<ActivityResponse> getActivitiesByUserId(UserPrincipal principal, Integer userId) {
         cardCollectionValidator.validateAccess(principal.id(), userId);
-        return activityRepository.findAllByUserId(userId).stream()
+        return activityRepository.findAllByUserIdAndDeletedAtIsNull(userId).stream()
                 .map(ActivityResponse::from)
                 .toList();
     }
