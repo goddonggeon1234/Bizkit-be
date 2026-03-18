@@ -37,7 +37,8 @@ public class RabbitMQConfig {
 
     @Bean
     Queue cardJobsQueue() {
-        return QueueBuilder.quorum("ai.card.jobs")
+        return QueueBuilder.durable("ai.card.jobs")
+                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("card.jobs")
                 .withArgument("x-message-ttl", 200_000L)
@@ -46,7 +47,8 @@ public class RabbitMQConfig {
 
     @Bean
     Queue jobJobsQueue() {
-        return QueueBuilder.quorum("ai.job.jobs")
+        return QueueBuilder.durable("ai.job.jobs")
+                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("job.jobs")
                 .withArgument("x-message-ttl", 200_000L)
@@ -55,7 +57,8 @@ public class RabbitMQConfig {
 
     @Bean
     Queue hexJobsQueue() {
-        return QueueBuilder.quorum("ai.hex.jobs")
+        return QueueBuilder.durable("ai.hex.jobs")
+                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("hex.jobs")
                 .withArgument("x-message-ttl", 200_000L)
@@ -66,7 +69,8 @@ public class RabbitMQConfig {
 
     @Bean
     Queue cardResultQueue() {
-        return QueueBuilder.quorum("ai.card.result")
+        return QueueBuilder.durable("ai.card.result")
+                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("card.result")
                 .withArgument("x-delivery-limit", 3)
@@ -75,7 +79,8 @@ public class RabbitMQConfig {
 
     @Bean
     Queue jobResultQueue() {
-        return QueueBuilder.quorum("ai.job.result")
+        return QueueBuilder.durable("ai.job.result")
+                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("job.result")
                 .withArgument("x-delivery-limit", 3)
@@ -84,7 +89,8 @@ public class RabbitMQConfig {
 
     @Bean
     Queue hexResultQueue() {
-        return QueueBuilder.quorum("ai.hex.result")
+        return QueueBuilder.durable("ai.hex.result")
+                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("hex.result")
                 .withArgument("x-delivery-limit", 3)
@@ -95,12 +101,12 @@ public class RabbitMQConfig {
 
     @Bean
     Queue jobsDlq() {
-        return QueueBuilder.quorum("ai.jobs.dlq").build();
+        return QueueBuilder.durable("ai.jobs.dlq").quorum().build();
     }
 
     @Bean
     Queue resultDlq() {
-        return QueueBuilder.quorum("ai.result.dlq").build();
+        return QueueBuilder.durable("ai.result.dlq").quorum().build();
     }
 
     // ── Jobs Binding ──────────────────────────────────────────────────────────
