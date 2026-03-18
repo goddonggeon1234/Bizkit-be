@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(name = "uk_ai_card_task_active_token", columnNames = {"active_token"})
         }
 )
-public class AiCardTask extends BaseTimeEntity {
+public class AiCardTask extends BaseTimeEntity implements AiTask {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,5 +66,10 @@ public class AiCardTask extends BaseTimeEntity {
     public void fail() {
         this.status = AiAnalysisStatus.FAILED;
         this.activeToken = null;
+    }
+
+    @Override
+    public Integer getUserId() {
+        return user.getId();
     }
 }
