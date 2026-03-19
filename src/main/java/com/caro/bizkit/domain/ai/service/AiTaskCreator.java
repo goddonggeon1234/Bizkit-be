@@ -58,7 +58,7 @@ public class AiTaskCreator {
     private final ReviewTagRepository reviewTagRepository;
     private final AiUsageService aiUsageService;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public AiCardJobMessage createCardTask(Integer userId, Integer cardId, CardStyleTag tag, String text) {
         aiUsageService.validateWeeklyCount(userId);
 
@@ -85,7 +85,7 @@ public class AiTaskCreator {
         );
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public AiJobJobMessage createJobTask(Integer cardId) {
         Card card = cardRepository.findById(cardId).orElse(null);
         if (card == null || card.getUser() == null) {
@@ -108,7 +108,7 @@ public class AiTaskCreator {
         );
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public AiHexJobMessage createHexTask(Integer userId) {
         return linkRepository.findFirstByUserIdAndLinkContaining(userId, GITHUB_DOMAIN)
                 .map(link -> buildHexJobMessage(userId, link.getLink()))
