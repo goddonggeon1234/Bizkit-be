@@ -38,7 +38,6 @@ public class RabbitMQConfig {
     @Bean
     Queue cardJobsQueue() {
         return QueueBuilder.durable("ai.card.jobs")
-                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("card.jobs")
                 .withArgument("x-message-ttl", 200_000L)
@@ -48,7 +47,6 @@ public class RabbitMQConfig {
     @Bean
     Queue jobJobsQueue() {
         return QueueBuilder.durable("ai.job.jobs")
-                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("job.jobs")
                 .withArgument("x-message-ttl", 200_000L)
@@ -58,7 +56,6 @@ public class RabbitMQConfig {
     @Bean
     Queue hexJobsQueue() {
         return QueueBuilder.durable("ai.hex.jobs")
-                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("hex.jobs")
                 .withArgument("x-message-ttl", 200_000L)
@@ -70,30 +67,24 @@ public class RabbitMQConfig {
     @Bean
     Queue cardResultQueue() {
         return QueueBuilder.durable("ai.card.result")
-                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("card.result")
-                .withArgument("x-delivery-limit", 3)
                 .build();
     }
 
     @Bean
     Queue jobResultQueue() {
         return QueueBuilder.durable("ai.job.result")
-                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("job.result")
-                .withArgument("x-delivery-limit", 3)
                 .build();
     }
 
     @Bean
     Queue hexResultQueue() {
         return QueueBuilder.durable("ai.hex.result")
-                .quorum()
                 .deadLetterExchange("ai.dlx")
                 .deadLetterRoutingKey("hex.result")
-                .withArgument("x-delivery-limit", 3)
                 .build();
     }
 
@@ -101,12 +92,16 @@ public class RabbitMQConfig {
 
     @Bean
     Queue jobsDlq() {
-        return QueueBuilder.durable("ai.jobs.dlq").quorum().build();
+        return QueueBuilder.durable("ai.jobs.dlq")
+                .withArgument("x-message-ttl", 604_800_000L) // 7일
+                .build();
     }
 
     @Bean
     Queue resultDlq() {
-        return QueueBuilder.durable("ai.result.dlq").quorum().build();
+        return QueueBuilder.durable("ai.result.dlq")
+                .withArgument("x-message-ttl", 604_800_000L) // 7일
+                .build();
     }
 
     // ── Jobs Binding ──────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 package com.caro.bizkit.domain.ai.service;
 
-import com.caro.bizkit.domain.ai.dto.AiHexJobMessage;
+import com.caro.bizkit.domain.ai.rabbitmq.message.AiHexJobMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

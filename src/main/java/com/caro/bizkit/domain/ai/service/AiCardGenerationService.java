@@ -1,6 +1,6 @@
 package com.caro.bizkit.domain.ai.service;
 
-import com.caro.bizkit.domain.ai.dto.AiCardJobMessage;
+import com.caro.bizkit.domain.ai.rabbitmq.message.AiCardJobMessage;
 import com.caro.bizkit.domain.ai.entity.CardStyleTag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

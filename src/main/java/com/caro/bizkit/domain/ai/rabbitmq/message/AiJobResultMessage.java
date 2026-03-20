@@ -1,4 +1,4 @@
-package com.caro.bizkit.domain.ai.dto;
+package com.caro.bizkit.domain.ai.rabbitmq.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

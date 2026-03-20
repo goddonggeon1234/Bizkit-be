@@ -1,8 +1,8 @@
-package com.caro.bizkit.domain.ai.consumer;
+package com.caro.bizkit.domain.ai.rabbitmq.consumer;
 
-import com.caro.bizkit.domain.ai.dto.AiJobResultMessage;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisStatus;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisTask;
+import com.caro.bizkit.domain.ai.rabbitmq.message.AiJobResultMessage;
 import com.caro.bizkit.domain.ai.repository.AiAnalysisTaskRepository;
 import com.caro.bizkit.domain.card.repository.CardRepository;
 import lombok.RequiredArgsConstructor;

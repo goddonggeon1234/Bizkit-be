@@ -1,10 +1,10 @@
-package com.caro.bizkit.domain.ai.consumer;
+package com.caro.bizkit.domain.ai.rabbitmq.consumer;
 
 import com.caro.bizkit.common.S3.dto.UploadCategory;
 import com.caro.bizkit.common.S3.service.S3Service;
-import com.caro.bizkit.domain.ai.dto.AiCardResultMessage;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisStatus;
 import com.caro.bizkit.domain.ai.entity.AiCardTask;
+import com.caro.bizkit.domain.ai.rabbitmq.message.AiCardResultMessage;
 import com.caro.bizkit.domain.ai.repository.AiCardTaskRepository;
 import com.caro.bizkit.domain.ai.service.AiUsageService;
 import com.caro.bizkit.domain.ai.service.SseEmitterService;

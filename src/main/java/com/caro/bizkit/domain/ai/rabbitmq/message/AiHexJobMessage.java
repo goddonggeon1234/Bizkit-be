@@ -1,5 +1,6 @@
-package com.caro.bizkit.domain.ai.dto;
+package com.caro.bizkit.domain.ai.rabbitmq.message;
 
+import com.caro.bizkit.domain.ai.dto.AiHexAnalyzeRequest;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record AiHexJobMessage(

@@ -1,11 +1,11 @@
 package com.caro.bizkit.domain.ai.service;
 
 import com.caro.bizkit.common.exception.CustomException;
-import com.caro.bizkit.domain.ai.dto.AiCardJobMessage;
 import com.caro.bizkit.domain.ai.dto.AiHexAnalyzeRequest;
-import com.caro.bizkit.domain.ai.dto.AiHexJobMessage;
 import com.caro.bizkit.domain.ai.dto.AiJobAnalyzeRequest;
-import com.caro.bizkit.domain.ai.dto.AiJobJobMessage;
+import com.caro.bizkit.domain.ai.rabbitmq.message.AiCardJobMessage;
+import com.caro.bizkit.domain.ai.rabbitmq.message.AiHexJobMessage;
+import com.caro.bizkit.domain.ai.rabbitmq.message.AiJobJobMessage;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisStatus;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisTask;
 import com.caro.bizkit.domain.ai.entity.AiAnalysisTaskType;
