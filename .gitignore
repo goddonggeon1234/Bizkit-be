@@ -40,5 +40,8 @@ out/
 .env
 .env.*
 
+## local profile yml
+src/main/resources/application-local.yml
+
 ## seed config
 src/main/java/com/caro/bizkit/common/config/SeedDataConfig.java

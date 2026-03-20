@@ -16,7 +16,6 @@ spring:
     open-in-view: false
   data:
     redis:
-      host: ${REDIS_HOST:}
       password: ${REDIS_PASSWORD:}
 
 management:
