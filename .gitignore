@@ -46,7 +46,7 @@ src/main/java/com/caro/bizkit/common/config/SeedDataConfig.java
 ## 로컬 개발/디버깅용
 src/main/java/com/caro/bizkit/common/monitoring/
 k6/
-src/main/resources/application-dev.yml
+src/main/resources/application-local.yml
 src/main/resources/static/*-test.html
 docker-compose.yml
 
