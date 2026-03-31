@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+
+//todo
+//테스트 해볼것
 public class AiUsageService {
 
     private final AiUsageRepository aiUsageRepository;
