@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "ai_analysis_task")
-public class AiAnalysisTask extends BaseTimeEntity {
+public class AiAnalysisTask extends BaseTimeEntity implements AiTask {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,5 +50,10 @@ public class AiAnalysisTask extends BaseTimeEntity {
 
     public void assignAiTaskId(String aiTaskId) {
         this.aiTaskId = aiTaskId;
+    }
+
+    @Override
+    public Integer getUserId() {
+        return user.getId();
     }
 }

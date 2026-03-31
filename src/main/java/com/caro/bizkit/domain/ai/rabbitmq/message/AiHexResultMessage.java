@@ -1,10 +1,14 @@
-package com.caro.bizkit.domain.ai.dto;
+package com.caro.bizkit.domain.ai.rabbitmq.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record AiHexAnalyzeResponse(
-        String message,
-        Data data
+public record AiHexResultMessage(
+        @JsonProperty("backend_task_id") Integer backendTaskId,
+        @JsonProperty("ai_task_id") String aiTaskId,
+        @JsonProperty("user_id") Integer userId,
+        String status,
+        Data data,
+        String error
 ) {
     public record Data(
             @JsonProperty("radar_chart") RadarChart radarChart,
