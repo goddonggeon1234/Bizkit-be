@@ -1,6 +1,7 @@
 package com.caro.bizkit.domain.userdetail.link.service;
 
 import com.caro.bizkit.common.security.CardCollectionValidator;
+import com.caro.bizkit.domain.ai.event.HexAnalysisTriggerEvent;
 import com.caro.bizkit.domain.user.dto.UserPrincipal;
 import com.caro.bizkit.domain.user.entity.User;
 import com.caro.bizkit.domain.user.repository.UserRepository;
@@ -12,6 +13,7 @@ import com.caro.bizkit.domain.userdetail.link.entity.Link;
 import com.caro.bizkit.domain.userdetail.link.repository.LinkRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class LinkService {
     private final LinkRepository linkRepository;
     private final UserRepository userRepository;
     private final CardCollectionValidator cardCollectionValidator;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<LinkResponse> getMyLinks(UserPrincipal principal) {
@@ -46,6 +49,9 @@ public class LinkService {
         User user = userRepository.getReferenceById(principal.id());
         Link linkEntity = Link.create(user, request.title(), request.link());
         Link saved = linkRepository.save(linkEntity);
+        if (saved.getLink().contains("github.com")) {
+            eventPublisher.publishEvent(new HexAnalysisTriggerEvent(principal.id()));
+        }
         return LinkResponse.from(saved);
     }
 

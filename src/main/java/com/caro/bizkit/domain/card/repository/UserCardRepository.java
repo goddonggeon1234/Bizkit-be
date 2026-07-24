@@ -4,6 +4,7 @@ import com.caro.bizkit.domain.card.entity.UserCard;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,12 +13,15 @@ public interface UserCardRepository extends JpaRepository<UserCard, Integer> {
     boolean existsByUserIdAndCardId(Integer userId, Integer cardId);
     List<UserCard> findAllByUserId(Integer userId);
     Optional<UserCard> findByUserIdAndCardId(Integer userId, Integer cardId);
+    @EntityGraph(attributePaths = {"card", "card.user"})
     List<UserCard> findByUserIdOrderByIdDesc(Integer userId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"card", "card.user"})
     List<UserCard> findByUserIdAndIdLessThanOrderByIdDesc(Integer userId, Integer cursorId, Pageable pageable);
 
     @Query(value = """
-            SELECT uc.*
-            FROM user_card uc
+            SELECT uc.id
+            FROM user_card uc USE INDEX (idx_user_card_user_id_id)
             JOIN card c ON c.id = uc.card_id
             WHERE uc.user_id = :userId
               AND (
@@ -30,15 +34,15 @@ public interface UserCardRepository extends JpaRepository<UserCard, Integer> {
               )
             ORDER BY uc.id DESC
             """, nativeQuery = true)
-    List<UserCard> searchCollectedCards(
+    List<Integer> searchCollectedCardIds(
             @Param("userId") Integer userId,
             @Param("keyword") String keyword,
             Pageable pageable
     );
 
     @Query(value = """
-            SELECT uc.*
-            FROM user_card uc
+            SELECT uc.id
+            FROM user_card uc USE INDEX (idx_user_card_user_id_id)
             JOIN card c ON c.id = uc.card_id
             WHERE uc.user_id = :userId
               AND uc.id < :cursorId
@@ -52,12 +56,21 @@ public interface UserCardRepository extends JpaRepository<UserCard, Integer> {
               )
             ORDER BY uc.id DESC
             """, nativeQuery = true)
-    List<UserCard> searchCollectedCardsWithCursor(
+    List<Integer> searchCollectedCardIdsWithCursor(
             @Param("userId") Integer userId,
             @Param("cursorId") Integer cursorId,
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    @Query("""
+            SELECT uc FROM UserCard uc
+            JOIN FETCH uc.card c
+            LEFT JOIN FETCH c.user
+            WHERE uc.id IN :ids
+            ORDER BY uc.id DESC
+            """)
+    List<UserCard> findAllByIdInWithFetch(@Param("ids") List<Integer> ids);
 
     void deleteAllByUserId(Integer userId);
 

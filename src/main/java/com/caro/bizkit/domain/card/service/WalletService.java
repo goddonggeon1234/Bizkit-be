@@ -135,12 +135,13 @@ public class WalletService {
             String escaped = keyword.replace("\\", "\\\\")
                                     .replace("%", "\\%")
                                     .replace("_", "\\_");
-            if (cursorId == null) {
-                return userCardRepository.searchCollectedCards(
-                        userId, escaped, PageRequest.of(0, limit));
+            List<Integer> ids = cursorId == null
+                    ? userCardRepository.searchCollectedCardIds(userId, escaped, PageRequest.of(0, limit))
+                    : userCardRepository.searchCollectedCardIdsWithCursor(userId, cursorId, escaped, PageRequest.of(0, limit));
+            if (ids.isEmpty()) {
+                return List.of();
             }
-            return userCardRepository.searchCollectedCardsWithCursor(
-                    userId, cursorId, escaped, PageRequest.of(0, limit));
+            return userCardRepository.findAllByIdInWithFetch(ids);
         }
         if (cursorId == null) {
             return userCardRepository.findByUserIdOrderByIdDesc(userId, PageRequest.of(0, limit));

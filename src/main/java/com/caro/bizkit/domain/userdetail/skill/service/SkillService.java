@@ -2,16 +2,15 @@ package com.caro.bizkit.domain.userdetail.skill.service;
 
 import com.caro.bizkit.common.security.CardCollectionValidator;
 import com.caro.bizkit.domain.user.dto.UserPrincipal;
-import com.caro.bizkit.domain.user.entity.User;
 import com.caro.bizkit.domain.user.repository.UserRepository;
 import com.caro.bizkit.domain.userdetail.skill.dto.SkillResponse;
 import com.caro.bizkit.domain.userdetail.skill.dto.SkillUpdateRequest;
 import com.caro.bizkit.domain.userdetail.skill.entity.Skill;
-import com.caro.bizkit.domain.userdetail.skill.entity.UserSkill;
 import com.caro.bizkit.domain.userdetail.skill.repository.SkillRepository;
 import com.caro.bizkit.domain.userdetail.skill.repository.UserSkillRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +22,9 @@ public class SkillService {
 
     private final SkillRepository skillRepository;
     private final UserSkillRepository userSkillRepository;
-    private final UserRepository userRepository;
     private final CardCollectionValidator cardCollectionValidator;
 
+    @Cacheable(cacheNames = "skills", cacheManager = "caffeineCacheManager")
     @Transactional(readOnly = true)
     public List<SkillResponse> getAllSkills() {
         return skillRepository.findAll().stream()
@@ -57,9 +56,6 @@ public class SkillService {
 
     @Transactional
     public List<SkillResponse> updateMySkills(UserPrincipal principal, SkillUpdateRequest request) {
-        User user = userRepository.findByIdAndDeletedAtIsNull(principal.id())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
         userSkillRepository.deleteAllByUserId(principal.id());
 
         if (request.skillIds() == null || request.skillIds().isEmpty()) {
@@ -69,17 +65,13 @@ public class SkillService {
         List<Skill> skills = skillRepository.findAllById(request.skillIds());
 
         if (skills.size() != request.skillIds().size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid skill id included");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 스킬 ID가 포함되어 있습니다");
         }
 
-        List<UserSkill> userSkills = skills.stream()
-                .map(skill -> new UserSkill(user, skill))
-                .toList();
+        userSkillRepository.insertAllByUserIdAndSkillIds(principal.id(), request.skillIds());
 
-        userSkillRepository.saveAll(userSkills);
-
-        return userSkills.stream()
-                .map(userSkill -> SkillResponse.from(userSkill.getSkill()))
+        return skills.stream()
+                .map(SkillResponse::from)
                 .toList();
     }
 }

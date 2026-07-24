@@ -4,7 +4,8 @@ public enum UploadCategory {
     PROFILE("profile", null),
     QR("qr", null),
     AI("ai", null),
-    OCR("ocr", 1);
+    OCR("ocr", 1),
+    AI_CARD_TEMP("ai/card/temp", 1);
 
     private final String prefix;
     private final Integer lifetimeDays;

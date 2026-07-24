@@ -31,11 +31,17 @@ public class Review extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer starScore; // TINYINT
 
-    public void setReviewer(User reviewer) {
-        this.reviewer = reviewer;
+    public static Review create(User reviewer, User reviewee, Integer starScore, String content) {
+        Review review = new Review();
+        review.reviewer = reviewer;
+        review.reviewee = reviewee;
+        review.starScore = starScore;
+        review.content = content;
+        return review;
     }
 
-    public void setReviewee(User reviewee) {
-        this.reviewee = reviewee;
+    public void update(Integer starScore, String content) {
+        if (starScore != null) this.starScore = starScore;
+        if (content != null) this.content = content;
     }
 }

@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -98,7 +99,7 @@ public class WalletController {
     })
     public ResponseEntity<ApiResponse<List<WalletResponse>>> getCollectedCards(
             @AuthenticationPrincipal UserPrincipal user,
-            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(defaultValue = "20") @Max(value = 30, message = "size는 최대 30까지 허용됩니다") Integer size,
             @RequestParam(required = false) Integer cursorId,
             @RequestParam(required = false) @Size(max = 100, message = "검색어는 100자 이하로 입력해주세요") String keyword
     ) {

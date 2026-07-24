@@ -26,6 +26,15 @@ public class ChartData {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    public static ChartData create(User user, String name, Integer value, String description) {
+        ChartData chartData = new ChartData();
+        chartData.user = user;
+        chartData.name = name;
+        chartData.value = value;
+        chartData.description = description;
+        return chartData;
+    }
+
     public void setUser(User user) {
         this.user = user;
     }

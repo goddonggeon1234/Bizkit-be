@@ -46,10 +46,12 @@ public class SecurityConfig {
                                 "/api/auth/rotation",
                                 "/api/dev/**",
                                 "/error",
-                                "/chat-test.html"
+                                "/chat-test.html",
+                                "/sse-test.html"
                         ).permitAll()
                         .requestMatchers("/api/cards/uuid/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/sse/**").permitAll()
                         .requestMatchers("/actuator", "/actuator/**").permitAll()
                         .requestMatchers("/swagger-ui", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()

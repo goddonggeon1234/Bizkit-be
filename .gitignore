@@ -47,5 +47,8 @@ src/main/java/com/caro/bizkit/common/config/SeedDataConfig.java
 src/main/java/com/caro/bizkit/common/monitoring/
 k6/
 src/main/resources/application-dev.yml
-src/main/resources/static/chat-test.html
+src/main/resources/static/*-test.html
 docker-compose.yml
+
+## 설계 문서
+docs/

@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -56,6 +57,18 @@ public class S3Service {
                 bucket,
                 s3Properties.getRegion(),
                 normalizedKey);
+    }
+
+    public String uploadBytes(String key, byte[] bytes, String contentType) {
+        String bucket = requireBucket();
+        String normalizedKey = requireKey(key);
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(normalizedKey)
+                .contentType(contentType)
+                .build();
+        s3Client.putObject(request, RequestBody.fromBytes(bytes));
+        return normalizedKey;
     }
 
     public void deleteObject(String key) {

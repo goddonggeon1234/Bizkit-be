@@ -14,10 +14,17 @@ spring:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:}
     open-in-view: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:host.docker.internal}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
   data:
     redis:
       host: ${REDIS_HOST:}
       password: ${REDIS_PASSWORD:}
+      timeout: 1000ms
+      connect-timeout: 1000ms
 
 management:
   server:
@@ -64,11 +71,6 @@ aws:
     presigned-url-expiration-seconds: ${AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS:300}
     env-prefix: ${SPRING_PROFILES_ACTIVE}
 
-ai:
-  client:
-    base-url: ${AI_SERVER_URL:http://localhost:8000}
-    timeout-seconds: ${AI_TIMEOUT_SECONDS:60}
-    poll-interval-seconds: ${AI_POLL_INTERVAL_SECONDS:3}
 
 metrics:
   http:

@@ -5,8 +5,7 @@ import com.caro.bizkit.domain.chat.dto.ChatMessageResponse;
 import com.caro.bizkit.domain.chat.service.ChatMessageService;
 import com.caro.bizkit.domain.chat.service.ChatRedisPublisher;
 import com.caro.bizkit.domain.user.dto.UserPrincipal;
-import com.caro.bizkit.domain.user.entity.User;
-import com.caro.bizkit.domain.user.repository.UserRepository;
+import com.caro.bizkit.security.UserPrincipalCacheService;
 import java.security.Principal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,27 +21,16 @@ public class ChatStompController {
 
     private final ChatMessageService chatMessageService;
     private final ChatRedisPublisher chatRedisPublisher;
-    private final UserRepository userRepository;
+    private final UserPrincipalCacheService userPrincipalCacheService;
 
     @MessageMapping("/chat/messages")
     public void sendMessage(ChatMessageRequest request, Principal principal) {
         Integer userId = Integer.valueOf(principal.getName());
 
-        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        UserPrincipal userPrincipal = new UserPrincipal(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getLinedNumber(),
-                user.getCompany(),
-                user.getDepartment(),
-                user.getPosition(),
-                user.getProfileImageKey(),
-                user.getDescription()
-        );
+        UserPrincipal userPrincipal = userPrincipalCacheService.findById(userId);
+        if (userPrincipal == null) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
 
         // DB 저장
         ChatMessageResponse response = chatMessageService.sendMessage(userPrincipal, request);
